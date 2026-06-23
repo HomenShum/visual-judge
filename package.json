@@ -1,0 +1,40 @@
+{
+  "name": "@homenshum/visual-judge",
+  "version": "0.1.0",
+  "description": "Continuous browser walkthrough capture plus Gemini-backed visual QA judgment for web app UI/UX gaps.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Homen Shum",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "visual-judge": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "examples",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/cli.ts",
+    "capture": "tsx src/cli.ts capture",
+    "judge": "tsx src/cli.ts judge",
+    "scorecard": "tsx src/cli.ts scorecard",
+    "prepare": "npm run build",
+    "check": "npm run build"
+  },
+  "dependencies": {
+    "@ai-sdk/google": "^3.0.82",
+    "@playwright/test": "^1.60.0",
+    "ai": "^6.0.206",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

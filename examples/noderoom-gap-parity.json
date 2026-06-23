@@ -1,0 +1,102 @@
+{
+  "name": "noderoom-gap-parity",
+  "description": "Exercise the NodeRoom prototype-gap surfaces: landing/create, room shell, trace side rail, tweaks, chat artifact embeds, and mobile capture sheets.",
+  "localStorage": {
+    "noderoom:tour:v1": "done",
+    "noderoom:mobile:tweaks:v2": "{\"navModel\":\"capture\",\"density\":\"comfortable\",\"motion\":\"standard\",\"coach\":\"on\"}"
+  },
+  "steps": [
+    {
+      "type": "goto",
+      "path": "/?mode=memory"
+    },
+    {
+      "type": "click",
+      "selector": "[data-testid='start-demo-room']",
+      "optional": true
+    },
+    {
+      "type": "waitFor",
+      "selector": "[data-testid='artifact-panel']",
+      "timeoutMs": 20000
+    },
+    {
+      "type": "screenshot",
+      "name": "room-shell"
+    },
+    {
+      "type": "click",
+      "selector": "[data-testid='trace-tab']",
+      "optional": true
+    },
+    {
+      "type": "screenshot",
+      "name": "trace-surface"
+    },
+    {
+      "type": "click",
+      "selector": "[aria-label='Next walkthrough step']",
+      "optional": true
+    },
+    {
+      "type": "click",
+      "selector": "[aria-label='Open room tweaks']",
+      "optional": true
+    },
+    {
+      "type": "screenshot",
+      "name": "room-tweaks"
+    },
+    {
+      "type": "click",
+      "selector": "[data-testid='public-chat-panel'] [data-testid='chat-message'] .r-msg-artifact",
+      "optional": true
+    },
+    {
+      "type": "screenshot",
+      "name": "chat-artifact-embed"
+    }
+  ],
+  "mobileSteps": [
+    {
+      "type": "goto",
+      "path": "/#mobile?mode=memory"
+    },
+    {
+      "type": "waitForText",
+      "text": "Capture",
+      "timeoutMs": 20000
+    },
+    {
+      "type": "screenshot",
+      "name": "mobile-capture"
+    },
+    {
+      "type": "click",
+      "selector": "button:has-text('Home')",
+      "optional": true
+    },
+    {
+      "type": "screenshot",
+      "name": "mobile-home"
+    },
+    {
+      "type": "click",
+      "selector": "button:has-text('Plan')",
+      "optional": true
+    },
+    {
+      "type": "screenshot",
+      "name": "mobile-plan"
+    },
+    {
+      "type": "click",
+      "selector": "button:has-text('Evidence')",
+      "optional": true
+    },
+    {
+      "type": "screenshot",
+      "name": "mobile-evidence"
+    }
+  ]
+}
