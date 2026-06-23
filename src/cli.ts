@@ -67,24 +67,26 @@ type BrowserEvidence = {
   findings: Finding[];
 };
 
-const args = process.argv.slice(2);
-const command = args[0] ?? "help";
+async function main() {
+  const args = process.argv.slice(2);
+  const command = args[0] ?? "help";
 
-try {
-  if (command === "capture") {
-    await captureCommand(args.slice(1));
-  } else if (command === "judge") {
-    await judgeCommand(args.slice(1));
-  } else if (command === "scorecard") {
-    scorecardCommand(args.slice(1));
-  } else {
-    printHelp();
-    process.exit(command === "help" || command === "--help" || command === "-h" ? 0 : 1);
+  try {
+    if (command === "capture") {
+      await captureCommand(args.slice(1));
+    } else if (command === "judge") {
+      await judgeCommand(args.slice(1));
+    } else if (command === "scorecard") {
+      scorecardCommand(args.slice(1));
+    } else {
+      printHelp();
+      process.exit(command === "help" || command === "--help" || command === "-h" ? 0 : 1);
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(message);
+    process.exit(1);
   }
-} catch (error) {
-  const message = error instanceof Error ? error.message : String(error);
-  console.error(message);
-  process.exit(1);
 }
 
 async function captureCommand(inputArgs: string[]) {
@@ -651,3 +653,5 @@ function printHelp() {
     "  visual-judge scorecard --evidence=<browser-evidence.json> [--judge=<gemini-review.json>] [--out=<md>]",
   ].join("\n"));
 }
+
+await main();
