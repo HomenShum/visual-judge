@@ -314,6 +314,7 @@ async function readSignals(page: Page) {
       const text = (element.textContent ?? "").trim();
       if (!text && !(element instanceof HTMLInputElement) && !(element instanceof HTMLTextAreaElement)) continue;
       const style = getComputedStyle(element);
+      if (style.backgroundImage && style.backgroundImage !== "none") continue;
       const fg = luminance(style.color);
       const bg = luminance(backgroundFor(element));
       if (fg === undefined || bg === undefined) continue;

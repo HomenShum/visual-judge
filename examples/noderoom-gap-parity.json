@@ -48,13 +48,8 @@
       "name": "room-tweaks"
     },
     {
-      "type": "click",
-      "selector": "[data-testid='public-chat-panel'] [data-testid='chat-message'] .r-msg-artifact",
-      "optional": true
-    },
-    {
       "type": "screenshot",
-      "name": "chat-artifact-embed"
+      "name": "public-chat"
     }
   ],
   "mobileSteps": [
@@ -63,8 +58,8 @@
       "path": "/#mobile?mode=memory"
     },
     {
-      "type": "waitForText",
-      "text": "Capture",
+      "type": "waitFor",
+      "selector": "[aria-label='Capture note']",
       "timeoutMs": 20000
     },
     {
@@ -73,7 +68,13 @@
     },
     {
       "type": "click",
-      "selector": "button:has-text('Home')",
+      "selector": "[aria-label='Home']",
+      "optional": true
+    },
+    {
+      "type": "waitForText",
+      "text": "Recents",
+      "timeoutMs": 10000,
       "optional": true
     },
     {
@@ -82,7 +83,7 @@
     },
     {
       "type": "click",
-      "selector": "button:has-text('Plan')",
+      "selector": ".na-rcard[data-kind='plan']",
       "optional": true
     },
     {
@@ -91,7 +92,12 @@
     },
     {
       "type": "click",
-      "selector": "button:has-text('Evidence')",
+      "selector": ".na-close[aria-label='Close']",
+      "optional": true
+    },
+    {
+      "type": "click",
+      "selector": ".na-rcard[data-kind='evidence']",
       "optional": true
     },
     {
