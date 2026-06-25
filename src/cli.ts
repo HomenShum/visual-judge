@@ -46,6 +46,11 @@ type BrowserEvidence = {
   runId: string;
   generatedAt: string;
   appUrl: string;
+  capture: {
+    storageState?: string;
+    savedStorageState?: string;
+    urlRedacted: boolean;
+  };
   scenario: {
     name: string;
     description?: string;
@@ -98,6 +103,9 @@ async function captureCommand(inputArgs: string[]) {
   const runId = optionValue(inputArgs, "--run-id") ?? timestampId(new Date());
   const outDir = resolve(optionValue(inputArgs, "--out") ?? join("out", runId));
   const viewports = optionValues(inputArgs, "--viewport").map(parseViewport);
+  const storageStatePath = optionValue(inputArgs, "--storage-state");
+  const saveStorageStatePath = optionValue(inputArgs, "--save-storage-state");
+  const headed = hasFlag(inputArgs, "--headed");
   if (!viewports.length) {
     viewports.push(
       { name: "desktop-1440", width: 1440, height: 900 },
@@ -108,12 +116,16 @@ async function captureCommand(inputArgs: string[]) {
   const scenario = readJson<Scenario>(scenarioPath);
   mkdirSync(outDir, { recursive: true });
 
-  const browser = await chromium.launch();
+  const browser = await chromium.launch({ headless: !headed });
   const viewResults: BrowserEvidence["viewports"] = [];
   const allFindings: Finding[] = [];
   try {
     for (const viewport of viewports) {
-      const result = await runViewport(browser, url, scenario, viewport, outDir);
+      const result = await runViewport(browser, url, scenario, viewport, outDir, {
+        storageStatePath,
+        saveStorageStatePath,
+        multipleViewports: viewports.length > 1,
+      });
       viewResults.push(result);
       allFindings.push(...result.findings);
     }
@@ -121,11 +133,17 @@ async function captureCommand(inputArgs: string[]) {
     await browser.close();
   }
 
+  const redactedUrl = redactUrl(url);
   const evidence: BrowserEvidence = {
     schema: 1,
     runId,
     generatedAt: new Date().toISOString(),
-    appUrl: url,
+    appUrl: redactedUrl,
+    capture: {
+      storageState: storageStatePath ? displayPath(storageStatePath) : undefined,
+      savedStorageState: saveStorageStatePath ? displayPath(saveStorageStatePath) : undefined,
+      urlRedacted: redactedUrl !== url,
+    },
     scenario: {
       name: scenario.name ?? basenameWithoutExt(scenarioPath),
       description: scenario.description,
@@ -141,14 +159,22 @@ async function captureCommand(inputArgs: string[]) {
   console.log(`findings=${allFindings.length} p0=${allFindings.filter((finding) => finding.severity === "P0").length} p1=${allFindings.filter((finding) => finding.severity === "P1").length}`);
 }
 
-async function runViewport(browser: Browser, baseUrl: string, scenario: Scenario, viewport: ViewportSpec, outDir: string): Promise<BrowserEvidence["viewports"][number]> {
+type CaptureBrowserOptions = {
+  storageStatePath?: string;
+  saveStorageStatePath?: string;
+  multipleViewports: boolean;
+};
+
+async function runViewport(browser: Browser, baseUrl: string, scenario: Scenario, viewport: ViewportSpec, outDir: string, options: CaptureBrowserOptions): Promise<BrowserEvidence["viewports"][number]> {
   const viewportDir = join(outDir, viewport.name);
   mkdirSync(viewportDir, { recursive: true });
   const context = await browser.newContext({
     viewport: { width: viewport.width, height: viewport.height },
     deviceScaleFactor: 1,
     recordVideo: { dir: viewportDir, size: { width: viewport.width, height: viewport.height } },
+    storageState: options.storageStatePath ? resolve(options.storageStatePath) : undefined,
   });
+  await context.addInitScript("window.__name = window.__name || ((fn) => fn);");
   await context.addInitScript(({ localStorageValues }) => {
     try {
       for (const [key, value] of Object.entries(localStorageValues as Record<string, string>)) {
@@ -206,6 +232,11 @@ async function runViewport(browser: Browser, baseUrl: string, scenario: Scenario
   await page.screenshot({ path: finalShot, fullPage: false });
   screenshots.push(displayPath(finalShot));
   const video = page.video();
+  if (options.saveStorageStatePath) {
+    const statePath = storageStateOutputPath(options.saveStorageStatePath, viewport.name, options.multipleViewports);
+    mkdirSync(dirname(statePath), { recursive: true });
+    await context.storageState({ path: statePath });
+  }
   await context.close();
   const videoPath = video ? await video.path().catch(() => undefined) : undefined;
 
@@ -228,7 +259,6 @@ async function runViewport(browser: Browser, baseUrl: string, scenario: Scenario
 async function runStep(page: Page, baseUrl: string, step: Step, outDir: string, index: number): Promise<string | undefined> {
   const timeout = step.timeoutMs ?? 7000;
   if (step.type === "goto") {
-    if (!step.path) throw new Error("goto requires path");
     await page.goto(resolveUrl(baseUrl, step.path), { waitUntil: "domcontentloaded", timeout });
     return undefined;
   }
@@ -563,10 +593,24 @@ function writeJson(path: string, value: unknown) {
   writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`);
 }
 
-function resolveUrl(baseUrl: string, path: string) {
+function resolveUrl(baseUrl: string, path?: string) {
+  if (!path || path === "." || path === "./") return baseUrl;
   if (/^https?:\/\//i.test(path)) return path;
-  const base = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
-  return new URL(path.replace(/^\//, ""), base).toString();
+  if (path.startsWith("/")) return new URL(path, baseUrl).toString();
+
+  const base = new URL(baseUrl);
+  if (!base.pathname.endsWith("/")) base.pathname = `${base.pathname}/`;
+  base.search = "";
+  base.hash = "";
+  return new URL(path, base).toString();
+}
+
+function storageStateOutputPath(path: string, viewportName: string, multipleViewports: boolean) {
+  const absolute = resolve(path);
+  if (!multipleViewports) return absolute;
+  const ext = extname(absolute);
+  const base = ext ? absolute.slice(0, -ext.length) : absolute;
+  return `${base}.${safeName(viewportName)}${ext || ".json"}`;
 }
 
 function parseViewport(value: string): ViewportSpec {
@@ -616,6 +660,10 @@ function optionValues(inputArgs: string[], name: string): string[] {
   return values;
 }
 
+function hasFlag(inputArgs: string[], name: string) {
+  return inputArgs.includes(name);
+}
+
 function timestampId(date: Date) {
   return date.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
 }
@@ -639,6 +687,20 @@ function displayPath(path: string) {
   return relative(root, absolute).replace(/\\/g, "/") || ".";
 }
 
+const sensitiveQueryName = /(auth|token|code|state|session|secret|password|pass|key|credential)/i;
+
+function redactUrl(value: string) {
+  try {
+    const url = new URL(value);
+    for (const key of Array.from(url.searchParams.keys())) {
+      if (sensitiveQueryName.test(key)) url.searchParams.set(key, "[redacted]");
+    }
+    return url.toString();
+  } catch {
+    return value;
+  }
+}
+
 function escapeMd(value: string) {
   return value.replace(/\|/g, "\\|").replace(/\n/g, " ");
 }
@@ -648,7 +710,7 @@ function printHelp() {
     "Visual Judge",
     "",
     "Commands:",
-    "  visual-judge capture --url=<url> --scenario=<file> [--out=<dir>] [--viewport=name:WIDTHxHEIGHT]",
+    "  visual-judge capture --url=<url> --scenario=<file> [--out=<dir>] [--viewport=name:WIDTHxHEIGHT] [--storage-state=<file>] [--save-storage-state=<file>] [--headed]",
     "  visual-judge judge --media=<png|jpg|webp|mp4|mov|webm> [--out=<json>] [--model=<gemini-model>]",
     "  visual-judge scorecard --evidence=<browser-evidence.json> [--judge=<gemini-review.json>] [--out=<md>]",
   ].join("\n"));
