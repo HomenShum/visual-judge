@@ -50,6 +50,32 @@ The capture command writes:
 - viewport screenshots
 - viewport videos when the browser supports recording
 
+### Authenticated Apps
+
+For apps behind login, first create a Playwright storage-state file with your
+normal browser/login flow, then pass it to capture:
+
+```bash
+npm run capture -- \
+  --url=https://clips.agent-native.com/library \
+  --scenario=examples/agent-native-clips-library.json \
+  --storage-state=.auth/clips.json \
+  --out=out/clips-library
+```
+
+Use `--headed` when you need to watch the capture browser. Use
+`--save-storage-state=.auth/clips.json` to write the session state back out after
+the run; when multiple viewports run, Visual Judge writes one file per viewport
+with the viewport name appended.
+
+Evidence redacts auth-like URL query values such as `token`, `code`, `state`,
+`session`, `key`, and `__an_auth_redirect`, so scorecards can be shared without
+leaking callback/session hints.
+
+If the scenario's first `goto` step omits `path`, Visual Judge opens the exact
+`--url` value. That is useful for signed or redirect URLs such as Agent-Native
+Clips library links.
+
 ## Judge Media With Gemini
 
 ```bash

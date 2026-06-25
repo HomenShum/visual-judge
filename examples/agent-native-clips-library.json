@@ -1,0 +1,26 @@
+{
+  "name": "agent-native-clips-library",
+  "description": "Capture the Agent-Native Clips library surface. Pass --storage-state for an authenticated library; without it this records the sign-in surface.",
+  "steps": [
+    {
+      "type": "goto",
+      "timeoutMs": 15000
+    },
+    {
+      "type": "waitForText",
+      "text": "Agent-Native Clips",
+      "optional": true,
+      "timeoutMs": 8000
+    },
+    {
+      "type": "waitForText",
+      "text": "Library",
+      "optional": true,
+      "timeoutMs": 8000
+    },
+    {
+      "type": "screenshot",
+      "name": "library-or-sign-in"
+    }
+  ]
+}
