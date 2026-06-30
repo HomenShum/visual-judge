@@ -89,6 +89,7 @@ The verifier is **separate by construction**: it sees only recorded pixels + DOM
 - **Deterministic floor wins ties.** The numeric P0/P1 finding count, not the model's mood, decides `rework`/`fix`; Gemini only sets the verdict when the deterministic layer is clean. ([`src/cli.ts`](src/cli.ts) `scorecardCommand`.)
 - **Runtime reliability.** Per-step `timeoutMs` (default 7000 ms; `goto` waits `domcontentloaded`); browser/context always closed in `finally`; `localStorage`/PerformanceObserver init wrapped in `try/catch`; unsupported media extension throws explicitly. ([`src/cli.ts`](src/cli.ts) `runStep`, `runViewport`, `mediaTypeFor`.)
 - **Gap:** no automated test exercising the judge/scorecard against a known-good vs known-bad fixture (see §4 absences, §7).
+- **PROVE-BEFORE-CLAIM** (agent-side gate) — never assert done/pass/fixed/blocked/absent/"root cause" from a *proxy* (an affordance, a keyword/template echo, a rendered shell, or a prior-based hypothesis); name the artifact that proves it and check THAT, independent-confirm anything that "looks done", and treat no gate as real until the autonomous path is tried. Canonical gate + observed failure signals: https://github.com/HomenShum/noderl/blob/main/spec/prove-before-claim.md
 
 ## 6. Reward & safety
 
